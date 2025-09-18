@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Combo of Games</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    background-color: #f0f0f0;
+    font-family: sans-serif;
+  }
+
+  .game-container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 20px 0;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  iframe {
+    width: 100%;
+    border: none;
+  }
+</style>
+</head>
+<body>
+
+  <div class="game-container">
+    <iframe id="game1" src="game1.html" title="modified-fireboy-and-lavagirl"></iframe>
+  </div>
+
+  <div class="game-container">
+    <iframe id="game2" src="game2.html" title="modified-number-game "></iframe>
+  </div>
+
+  <div class="game-container">
+    <iframe id="game3" src="game3.html" title="modified-snake-game "></iframe>
+  </div>
+
+<script>
+  function resizeIframe(iframe) {
+    try {
+      const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+      iframe.style.height = iframeDocument.body.scrollHeight + 'px';
+    } catch (error) {
+      console.warn('Cannot access iframe content: cross-origin issue');
+    }
+  }
+
+  const iframes = document.querySelectorAll('iframe');
+  iframes.forEach(iframe => {
+    iframe.addEventListener('load', () => resizeIframe(iframe));
+    // Optional: periodically check in case content changes dynamically
+    setInterval(() => resizeIframe(iframe), 500);
+  });
+</script>
+
+</body>
+</html>
