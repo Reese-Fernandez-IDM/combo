@@ -1,0 +1,66 @@
+ <!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Snake Game</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <div class="center">
+      <canvas id="game" width="480" height="480" aria-label="Snake game"></canvas>
+      <div class="ui" role="region" aria-label="Game controls">
+        <div class="row">
+          <h1>Snake.io — Classic</h1>
+          <div style="margin-left:auto" class="small">Use arrow keys or WASD</div>
+        </div>
+
+        <div class="score">
+          <div>
+            <div style="font-size:13px;color:var(--muted)">Queen</div>
+            <div id="scoreDisplay" style="font-size:18px;font-weight:700">0</div>
+          </div>
+          <div style="text-align:right">
+            <div class="small">Slay</div>
+            <div id="levelDisplay" style="font-weight:700">1</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <label class="small" for="difficulty">Difficulty</label>
+          <select id="difficulty" aria-label="Select difficulty">
+            <option value="1">Easy (Skibidi 1)</option>
+            <option value="2">Normal (Skibidi 2)</option>
+            <option value="3">Hard (Skibidi 3)</option>
+            <option value="4">Insane (skibidi 4)</option>
+          </select>
+          <button id="startBtn" class="primary" style="margin-left:auto">Start</button>
+        </div>
+
+        <div class="row instructions">
+          <div>
+            Eat the green food. Each food grows the snake and increases score. Don't hit walls or yourself.
+          </div>
+        </div>
+
+        <div class="controls" aria-hidden="false">
+          <button id="upBtn">Up ▲</button>
+          <button id="leftBtn">◀ Left</button>
+          <button id="downBtn">Down ▼</button>
+          <button id="rightBtn">Right ▶</button>
+          <button id="pauseBtn">Pause</button>
+          <button id="resetBtn">Reset</button>
+        </div>
+
+        <div class="footer">
+          <div class="small">Tap arrows on mobile. Press P to pause.</div>
+          <div class="small">Modified by Reese</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fireboy & Watergirl — Mini</title>
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #ui {
+      text-align: center;
+      padding: 10px;
+    }
+
+    canvas {
+      background: #444;
+      border: 2px solid #333;
+      border-radius: 8px;
+    }
+
+    button {
+      padding: 6px 12px;
+      border: none;
+      background: #ff8c2b;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-top: 6px;
+    }
+
+    button:hover {
+      background: #ffa952;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h1>Fireboy & Watergirl — Mini</h1>
+    <p>
+      Fireboy: <strong>A</strong> <em>left</em>, <strong>D</strong> <em>right</em>, <strong>W</strong> <em>jump</em><br/>
+      Watergirl: <strong>&larr;</strong> <em>left</em>, <strong>&rarr;</strong> <em>right</em>, <strong>&uarr;</strong> <em>jump</em>
+    </p>
+    <p id="status"></p>
+    <button id="restartBtn">Restart Level</button>
+  </div>
+
+  <canvas id="game" width="960" height="540"></canvas>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+    const restartBtn = document.getElementById('restartBtn');
+
+    const GRAVITY = 0.9;
+    const FRICTION = 0.86;
+    const PLAYER_SPEED = 3.2;
+    const JUMP_POWER = 15;
+
+    const level = {
+      width: canvas.width,
+      height: canvas.height,
+      platforms: [
+        { x: 0, y: 500, w: 960, h: 40 },
+        { x: 120, y: 400, w: 160, h: 16 },
+        { x: 320, y: 330, w: 140, h: 16 },
+        { x: 520, y: 260, w: 140, h: 16 },
+        { x: 760, y: 360, w: 120, h: 16 },
+        { x: 420, y: 440, w: 120, h: 16 }
+      ],
+      lava: [
+        { x: 0, y: 516, w: 160, h: 24 },
+        { x: 600, y: 516, w: 120, h: 24 }
+      ],
+      water: [
+        { x: 240, y: 516, w: 160, h: 24 },
+        { x: 420, y: 516, w: 80, h: 24 }
+      ],
+      doors: [
+        { x: 840, y: 460, w: 48, h: 40, for: 'fire' },
+        { x: 40, y: 440, w: 48, h: 40, for: 'water' }
+      ],
+    };
+
+    function createPlayer(kind, x, y) {
+      return { kind, x, y, w: 32, h: 48, vx: 0, vy: 0, onGround: false, alive: true, startX: x, startY: y };
+    }
+
+    const fire = createPlayer('fire', 80, 420);
+    const water = createPlayer('water', 120, 420);
+
+    let keys = {};
+    window.addEventListener('keydown', e => { keys[e.key] = true; });
+    window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+    restartBtn.addEventListener('click', resetLevel);
+
+    function resetPlayer(p) {
+      p.x = p.startX; p.y = p.startY;
+      p.vx = 0; p.vy = 0; p.alive = true; p.onGround = false;
+    }
+
+    function resetLevel() {
+      resetPlayer(fire);
+      resetPlayer(water);
+      statusEl.textContent = '';
+    }
+
+    function rectsIntersect(a,b){
+      return !(a.x + a.w <= b.x || a.x >= b.x + b.w || a.y + a.h <= b.y || a.y >= b.y + b.h);
+    }
+
+    function applyControls(p) {
+      if (!p.alive) return;
+      if (p.kind === 'fire') {
+        if (keys['a'] || keys['A']) p.vx = -PLAYER_SPEED;
+        else if (keys['d'] || keys['D']) p.vx = PLAYER_SPEED;
+        else p.vx *= FRICTION;
+        if ((keys['w'] || keys['W']) && p.onGround) {
+          p.vy = -JUMP_POWER; p.onGround = false;
+        }
+      } else {
+        if (keys['ArrowLeft']) p.vx = -PLAYER_SPEED;
+        else if (keys['ArrowRight']) p.vx = PLAYER_SPEED;
+        else p.vx *= FRICTION;
+        if (keys['ArrowUp'] && p.onGround) {
+          p.vy = -JUMP_POWER; p.onGround = false;
+        }
+      }
+    }
+
+    function handlePlatformCollisions(p) {
+      p.onGround = false;
+      p.x += p.vx;
+      for (let plat of level.platforms) {
+        const box = { x: plat.x, y: plat.y, w: plat.w, h: plat.h };
+        if (rectsIntersect(p, box)) {
+          if (p.vx > 0) p.x = box.x - p.w;
+          else if (p.vx < 0) p.x = box.x + box.w;
+          p.vx = 0;
+        }
+      }
+      if (p.x < 0) { p.x = 0; p.vx = 0; }
+      if (p.x + p.w > level.width) { p.x = level.width - p.w; p.vx = 0; }
+
+      p.vy += GRAVITY;
+      p.y += p.vy;
+      for (let plat of level.platforms) {
+        const box = { x: plat.x, y: plat.y, w: plat.w, h: plat.h };
+        if (rectsIntersect(p, box)) {
+          if (p.vy > 0) {
+            p.y = box.y - p.h; p.vy = 0; p.onGround = true;
+          } else if (p.vy < 0) {
+            p.y = box.y + box.h; p.vy = 0;
+          }
+        }
+      }
+      if (p.y + p.h > level.height) {
+        p.y = level.height - p.h; p.vy = 0; p.onGround = true;
+      }
+    }
+
+    function checkHazards(p) {
+      if (!p.alive) return;
+      for (let w of level.water) {
+        const box = { x: w.x, y: w.y, w: w.w, h: w.h };
+        if (rectsIntersect(p, box) && p.kind === 'fire') { p.alive = false; return; }
+      }
+      for (let l of level.lava) {
+        const box = { x: l.x, y: l.y, w: l.w, h: l.h };
+        if (rectsIntersect(p, box) && p.kind === 'water') { p.alive = false; return; }
+      }
+    }
+
+    function checkDoors() {
+      const reached = { fire:false, water:false };
+      for (let d of level.doors) {
+        const door = { x: d.x, y: d.y, w: d.w, h: d.h };
+        if (d.for === 'fire' && rectsIntersect(fire, door) && fire.alive) reached.fire = true;
+        if (d.for === 'water' && rectsIntersect(water, door) && water.alive) reached.water = true;
+      }
+      if (reached.fire && reached.water) {
+        statusEl.textContent = 'Level Complete! Both reached their doors 🎉';
+        fire.alive = false; water.alive = false;
+      } else {
+        let msgs = [];
+        if (reached.fire) msgs.push('Fireboy at door');
+        if (reached.water) msgs.push('Watergirl at door');
+        statusEl.textContent = msgs.join(' — ');
+      }
+    }
+
+    function drawRoundedRect(x,y,w,h,r){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.arcTo(x+w,y,x+w,y+h,r);
+      ctx.arcTo(x+w,y+h,x,y+h,r);
+      ctx.arcTo(x,y+h,x,y,r);
+      ctx.arcTo(x,y,x+w,y,r);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function drawPlayer(p) {
+      if (!p.alive) ctx.globalAlpha = 0.5;
+      if (p.kind === 'fire') {
+        ctx.fillStyle = '#ff7d2a';
+        ctx.strokeStyle = '#8a3d00';
+      } else {
+        ctx.fillStyle = '#2ea6ff';
+        ctx.strokeStyle = '#004f8a';
+      }
+      drawRoundedRect(p.x, p.y, p.w, p.h, 6);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(p.x + 6, p.y + 12, 6, 6);
+      ctx.fillRect(p.x + p.w - 12, p.y + 12, 6, 6);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(p.x + 7, p.y + 13, 2, 2);
+      ctx.fillRect(p.x + p.w - 11, p.y + 13, 2, 2);
+      ctx.globalAlpha = 1;
+    }
+
+    function update() {
+      applyControls(fire);
+      applyControls(water);
+      handlePlatformCollisions(fire);
+      handlePlatformCollisions(water);
+      checkHazards(fire);
+      checkHazards(water);
+      if (!fire.alive) setTimeout(()=> resetPlayer(fire), 350);
+      if (!water.alive) setTimeout(()=> resetPlayer(water), 350);
+      checkDoors();
+    }
+
+    function draw() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle = '#7a5c3a'; ctx.strokeStyle = '#5b432b';
+      for (let p of level.platforms) drawRoundedRect(p.x, p.y, p.w, p.h, 6);
+      for (let l of level.lava) {
+        ctx.fillStyle = '#ff6b4a'; ctx.fillRect(l.x, l.y, l.w, l.h);
+        ctx.fillStyle = 'rgba(255,255,255,0.06)';
+        for (let i=0;i<l.w;i+=12) ctx.fillRect(l.x+i, l.y+6+Math.sin((Date.now()/200)+i)*4, 10, 6);
+      }
+      for (let w of level.water) {
+        ctx.fillStyle = '#4ab3ff'; ctx.fillRect(w.x, w.y, w.w, w.h);
+        ctx.fillStyle = 'rgba(255,255,255,0.06)';
+        for (let i=0;i<w.w;i+=12) ctx.fillRect(w.x+i, w.y+6+Math.cos((Date.now()/200)+i)*4, 10, 6);
+      }
+      for (let d of level.doors) {
+        if (d.for === 'fire') {
+          ctx.fillStyle = '#ff8c2b'; ctx.fillRect(d.x, d.y, d.w, d.h);
+          ctx.strokeStyle = '#8a4d00'; ctx.strokeRect(d.x, d.y, d.w, d.h);
+        } else {
+          ctx.fillStyle = '#3ea5ff'; ctx.fillRect(d.x, d.y, d.w, d.h);
+          ctx.strokeStyle = '#005b9a'; ctx.strokeRect(d.x, d.y, d.w, d.h);
+        }
+      }
+      drawPlayer(fire);
+      drawPlayer(water);
+    }
+
+    function loop(){
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    resetLevel();
+    loop();
+  </script>
+</body>
+</html>
